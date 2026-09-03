@@ -1,3 +1,4 @@
+import { useGetNotifications } from '@/hooks/useGetNotifications';
 import { useState } from 'react';
 import { Settings, Trophy } from 'lucide-react';
 import { Button } from '@devfellowship/components';
@@ -19,14 +20,15 @@ import {
 } from '@/components/data-layer';
 import {
   previewAchievements,
-  previewNotifications,
   previewUserPreferences,
+  previewNotifications,
   previewUserProfile,
-  previewUserStats,
 } from '@/components/data-layer/preview.mock';
+import { useGetUserPreferences } from '@/hooks';
 import { PreviewSectionLabel } from './PreviewSectionLabel';
 import { useGetUserProfile } from '@/hooks';
 import { i } from 'framer-motion/client';
+import { useGetUserStats } from '@/hooks';
 
 /**
  * Preview + slots T1, T2, T4, T6 no header da `HomePage`.
@@ -41,12 +43,47 @@ export function HomePageHeaderDataSlots() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  
   const { data: userProfileData, isPending: isUserProfilePending, isError: isUserProfileError, refetch: userProfileRefetch, } = useGetUserProfile();
+  
+  const {
+    data: notificationsData,
+    isPending: isNotificationsPending,
+    isError: isNotificationsError,
+    refetch: notificationsRefetch,
+  } = useGetNotifications();
+  
+  const {
+    data: preferences,
+    isPending: isPreferencesPending,
+    isError: isPreferencesError,
+    refetch: refetchPreferences,
+  } = useGetUserPreferences();
+
+  const {
+    data: userStatsData,
+    isError: userStatsIsError,
+    isPending: userStatsIsPending,
+    refetch: userStatsRefetch,
+  } = useGetUserStats();
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
       {/* SLOT T4 */}
-      <UserStatsBadge stats={previewUserStats} className="flex" />
+      {userStatsIsPending ? (
+        <span className="rounded-full border border-border bg-muted/25 px-3 py-2 text-sm text-muted-foreground">
+          Carregando stats...
+        </span>
+      ) : userStatsIsError ? (
+        <div className="flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span>Não foi possível carregar seus stats.</span>
+          <Button variant="outline" size="sm" onClick={() => userStatsRefetch()}>
+            Tentar de novo
+          </Button>
+        </div>
+      ) : userStatsData ? (
+        <UserStatsBadge stats={userStatsData} className="flex" />
+      ) : null}
 
       {/* SLOT T6 */}
       <Drawer open={achievementsOpen} onOpenChange={setAchievementsOpen}>
@@ -87,7 +124,7 @@ export function HomePageHeaderDataSlots() {
             className="h-9 w-9 shrink-0"
             aria-label="Notificações"
           >
-            <NotificationBellIcon unreadCount={previewNotifications.unreadCount} />
+            <NotificationBellIcon unreadCount={notificationsData?.unreadCount ?? 0} />
           </Button>
         </DrawerTrigger>
         <DrawerContent className="max-h-[85vh]">
@@ -96,7 +133,22 @@ export function HomePageHeaderDataSlots() {
           </DrawerHeader>
           <div className="overflow-y-auto px-4 pb-2">
             <PreviewSectionLabel taskId="T10" />
-            <NotificationList summary={previewNotifications} />
+            {isNotificationsPending ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Carregando...
+              </p>
+            ) : isNotificationsError ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-destructive mb-2">
+                  Erro ao carregar notificações.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => notificationsRefetch()}>
+                  Tentar de novo
+                </Button>
+              </div>
+            ) : (
+              <NotificationList summary={notificationsData} />
+            )}
           </div>
           <DrawerClose asChild>
             <Button variant="outline" className="mx-4 mb-4">
@@ -106,7 +158,7 @@ export function HomePageHeaderDataSlots() {
         </DrawerContent>
       </Drawer>
 
-      {/* SLOT T2 */}
+    {/* SLOT T2 */}
       <Drawer open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DrawerTrigger asChild>
           <Button
@@ -121,8 +173,18 @@ export function HomePageHeaderDataSlots() {
         </DrawerTrigger>
         <DrawerContent className="max-h-[85vh]">
           <div className="overflow-y-auto px-4 pb-2 pt-2">
-            <PreviewSectionLabel taskId="T2" />
-            <AppearanceSettingsPanel preferences={previewUserPreferences} />
+            {isPreferencesPending && <p>Carregando preferências…</p>}
+            {isPreferencesError && (
+              <div>
+                <p>Não foi possível carregar suas preferências.</p>
+                <Button type="button" variant="outline" onClick={() => refetchPreferences()}>
+                  Tentar de novo
+                </Button>
+              </div>
+            )}
+            {!isPreferencesPending && !isPreferencesError && preferences && (
+              <AppearanceSettingsPanel preferences={preferences} />
+            )}
           </div>
           <DrawerClose asChild>
             <Button variant="outline" className="mx-4 mb-4">
@@ -131,6 +193,7 @@ export function HomePageHeaderDataSlots() {
           </DrawerClose>
         </DrawerContent>
       </Drawer>
+
 
       {/* SLOT T1 */}
       {isUserProfilePending ? (

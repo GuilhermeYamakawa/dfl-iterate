@@ -13,23 +13,12 @@ export interface UserPreferences {
   language: 'pt-BR' | 'en-US';
 }
 
-export type AnnouncementSeverity = 'info' | 'warning' | 'success';
-
-export interface Announcement {
-  id: string;
-  title: string;
-  body: string;
-  severity: AnnouncementSeverity;
-  publishedAt: string;
-  expiresAt: string | null;
-}
-
 export interface UserStats {
   userId: string;
   totalXp: number;
   level: number;
   currentStreak: number;
-  livesRemaining: number;
+  livesRemaining: number; 
 }
 
 export interface LessonProgress {
@@ -84,16 +73,4 @@ export interface Notification {
 export interface NotificationsSummary {
   unreadCount: number;
   items: Notification[];
-}
-
-export type ActivityEventType =
-  | 'lesson_completed'
-  | 'achievement_unlocked'
-  | 'streak_milestone';
-
-export interface ActivityEvent {
-  id: string;
-  type: ActivityEventType;
-  label: string;
-  occurredAt: string;
 }
